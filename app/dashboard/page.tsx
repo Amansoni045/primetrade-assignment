@@ -15,38 +15,39 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = () => {
+    const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login");
       return;
     }
 
     fetch("/api/tasks/get", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
         const data = await res.json();
-
         if (!res.ok) {
           setError(data.message || "Failed to load tasks");
           setTasks([]);
           return;
         }
-
         setTasks(Array.isArray(data) ? data : []);
       })
       .catch(() => {
         setError("Something went wrong");
         setTasks([]);
       })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+      .finally(() => setLoading(false));
+  };
 
   const addTask = async () => {
     const token = localStorage.getItem("token");
@@ -61,11 +62,74 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({ title }),
       });
-
       setTitle("");
-      location.reload();
+      fetchTasks();
     } catch (err) {
       setError("Failed to add task");
+    }
+  };
+
+  const deleteTask = async (id: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    if (!confirm("Are you sure you want to delete this task?")) return;
+
+    try {
+      const res = await fetch("/api/tasks/delete", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`, // Common mistake: missing content-type when body is present, though for DELETE body is optional/discouraged in some strict APIs but we used body in backend.
+          // Wait, Next.js Request.json() reads body. DELETE requests CAN have body but some clients/proxies strip it.
+          // Ideally ID should be in URL. But my backend code reads from body. 
+          // I will use body for now as implemented in backend step 203.
+          "Content-Type": "application/json", 
+        },
+        body: JSON.stringify({ id }),
+      });
+      
+      if (res.ok) {
+        setTasks(tasks.filter((t) => t._id !== id));
+      } else {
+        setError("Failed to delete task");
+      }
+    } catch (err) {
+      setError("Failed to delete task");
+    }
+  };
+
+  const startEdit = (task: Task) => {
+    setEditingId(task._id);
+    setEditTitle(task.title);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditTitle("");
+  };
+
+  const updateTask = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || !editingId || !editTitle) return;
+
+    try {
+      const res = await fetch("/api/tasks/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id: editingId, title: editTitle }),
+      });
+
+      if (res.ok) {
+        setTasks(tasks.map((t) => (t._id === editingId ? { ...t, title: editTitle } : t)));
+        cancelEdit();
+      } else {
+        setError("Failed to update task");
+      }
+    } catch (err) {
+      setError("Failed to update task");
     }
   };
 
@@ -145,7 +209,47 @@ export default function DashboardPage() {
                     key={task._id}
                     className="group flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
                   >
-                    <span className="font-medium text-zinc-900 dark:text-zinc-200">{task.title}</span>
+                    {editingId === task._id ? (
+                      <div className="flex w-full gap-2">
+                        <input
+                          className="flex-1 rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                        />
+                        <button
+                          onClick={updateTask}
+                          className="text-sm font-medium text-green-600 hover:underline dark:text-green-400"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="text-sm font-medium text-zinc-500 hover:underline dark:text-zinc-400"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="font-medium text-zinc-900 dark:text-zinc-200">{task.title}</span>
+                        <div className="flex gap-3 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button
+                            onClick={() => startEdit(task)}
+                            className="text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400"
+                            title="Edit"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                          </button>
+                          <button
+                            onClick={() => deleteTask(task._id)}
+                            className="text-zinc-400 hover:text-red-500 dark:hover:text-red-400"
+                            title="Delete"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -155,7 +259,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-1">
             <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900 dark:ring-zinc-800">
               <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
-                Add New Task
+                 Add New Task
               </h2>
               <div className="space-y-4">
                 <textarea

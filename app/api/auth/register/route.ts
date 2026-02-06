@@ -2,15 +2,22 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
+import { registerSchema } from "@/lib/validators/auth";
 
 export async function POST(req: Request) {
   try {
     await connectDB();
-    const { name, email, password } = await req.json();
+    const body = await req.json();
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ message: "All fields required" }, { status: 400 });
+    const result = registerSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json(
+        { message: result.error.issues[0].message },
+        { status: 400 }
+      );
     }
+
+    const { name, email, password } = result.data;
 
     const exists = await User.findOne({ email });
     if (exists) {
