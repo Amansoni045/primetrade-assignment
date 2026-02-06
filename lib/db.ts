@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
-const MONGO_URI = process.env.MONGO_URI as string;
+const MONGO_URL = process.env.MONGO_URL as string;
 
-if (!MONGO_URI) {
-  throw new Error("Please define MONGO_URI in .env.local");
+if (!MONGO_URL) {
+  throw new Error("Please define MONGO_URL in .env.local");
 }
 
-console.log("MONGO_URI loaded:", MONGO_URI.replace(/:([^:@]+)@/, ":****@")); // Mask password for security
+console.log("MONGO_URL loaded:", MONGO_URL.replace(/:([^:@]+)@/, ":****@"));
 
 let cached = (global as any).mongoose;
 
@@ -20,7 +20,7 @@ export async function connectDB() {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGO_URI).then((mongoose) => mongoose);
+    cached.promise = mongoose.connect(MONGO_URL).then((mongoose) => mongoose);
   }
 
   cached.conn = await cached.promise;

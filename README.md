@@ -54,7 +54,7 @@ A production-ready full-stack application built for the Primetrade internship as
 3.  **Configure Environment Variables**
     Create a `.env.local` file in the root directory:
     ```env
-    MONGO_URI=your_mongodb_connection_string
+    MONGO_URL=your_mongodb_connection_string
     JWT_SECRET=your_jwt_secret_key
     ```
 
