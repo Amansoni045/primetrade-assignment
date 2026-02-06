@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Task from "@/models/Task";
 import { getAuthUser } from "@/utils/auth";
+import { updateTaskSchema } from "@/lib/validators/task";
 
 export async function PUT(req: Request) {
     try {
@@ -11,25 +12,37 @@ export async function PUT(req: Request) {
         }
 
         await connectDB();
-        const { id, title } = await req.json();
+        const body = await req.json();
 
-        if (!id || !title) {
-            return NextResponse.json({ message: "Task ID and title required" }, { status: 400 });
+        const result = updateTaskSchema.safeParse(body);
+        if (!result.success) {
+            return NextResponse.json(
+                { message: result.error.issues[0].message },
+                { status: 400 }
+            );
         }
+
+        const { id, title, description } = result.data;
 
         const task = await Task.findOneAndUpdate(
             { _id: id, userId: user.id },
-            { title },
+            { title, description },
             { new: true }
         );
 
         if (!task) {
-            return NextResponse.json({ message: "Task not found or unauthorized" }, { status: 404 });
+            return NextResponse.json(
+                { message: "Task not found or unauthorized" },
+                { status: 404 }
+            );
         }
 
         return NextResponse.json(task, { status: 200 });
     } catch (error) {
         console.error("Update task error:", error);
-        return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+        return NextResponse.json(
+            { message: "Internal server error" },
+            { status: 500 }
+        );
     }
 }
