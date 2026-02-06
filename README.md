@@ -6,7 +6,7 @@ A production-ready full-stack application built for the Primetrade internship as
 
 -   **Framework**: Next.js 14 (App Router)
 -   **Database**: MongoDB Atlas (Mongoose ODM)
--   **Authentication**: JWT (JSON Web Tokens) with Secure Cookies
+-   **Authentication**: JWT (JSON Web Tokens)
 -   **Validation**: Zod
 -   **Styling**: Tailwind CSS
 -   **Deployment**: Vercel
@@ -83,10 +83,11 @@ This project implements a strict RBAC policy enforced via JWT payloads and serve
 
 This application is designed with scalability in mind:
 
--   **Modular API**: API routes are decoupled from the frontend, allowing for potential migration to a microservices architecture.
--   **Stateless Auth**: JWTs enable stateless authentication, making it easy to scale horizontally across serverless functions.
--   **Database Indexing**: MongoDB is schema-designed for efficient querying.
--   **Future-Proofing**: The architecture supports easy integration with Redis for caching or rate-limiting middleware.
+-   **Modular API**: API routes are decoupled from the frontend, allowing for potential migration to a **microservices** architecture.
+-   **Stateless Auth**: JWTs enable stateless authentication, making it easy to scale horizontally behind a **load balancer**.
+-   **Database Indexing**: MongoDB is schema-designed for high-performance querying.
+-   **Future-Proofing**: The architecture supports easy integration with **Redis** for caching or rate-limiting middleware.
+-   **API Versioning**: The current structure (`app/api/*`) serves as v1, with the folder structure easily extensible to support future versions (e.g., `app/api/v2/*`).
 
 ## ☁️ Deployment
 
